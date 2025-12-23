@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text Analyzer Learning Website</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+<a href="{{ url_for('admin.create_scenario') }}" class="admin-button">
+    <span>👨‍💼</span>
+    <span>Create Scenario</span>
+</a>
+
+<div class="container">
+
+    <!-- ===== SCORE ===== -->
+    <h2>⭐ Your Communication Score</h2>
+    <div class="score-box">
+        <div class="score-number">{{ score }}/100</div>
+        <div class="score-bar">
+            <div class="score-fill" style="width: {{ score }}%;"></div>
+        </div>
+        <p class="score-summary">{{ feedback_summary }}</p>
+    </div>
+
+    <!-- ===== USER ANSWER ===== -->
+    <h2>💬 Your Answer</h2>
+    <div class="answer-box">
+
+        {% if highlighted_words %}
+            <p>
+                {% set index = 0 %}
+                {% for h in highlighted_words %}
+                    {{ answer[index:h.start] }}
+                    <span class="highlight {{ h.color }}" title="{{ h.tooltip }}">
+                        {{ h.word }}
+                    </span>
+                    {% set index = h.stop + 1 %}
+                {% endfor %}
+                {{ answer[index:] }}
+            </p>
+        {% else %}
+            <p>{{ answer }}</p>
+        {% endif %}
+
+    </div>
+
+    <!-- ===== LESSON ===== -->
+    <div class="lesson-box">
+        <strong>🌱 Lesson</strong>
+        <p>{{ lesson_text }}</p>
+        <p class="key-principle">{{ key_principle }}</p>
+    </div>
+
+    <!-- ===== HINT ===== -->
+    <div class="hint-box">
+        <strong>💡 Hint</strong>
+        <p>{{ hint_text }}</p>
+
+        {% if alternative_response %}
+        <div class="alternative-box">
+            <strong>✨ Example you can try:</strong>
+            <p class="example-text">“{{ alternative_response }}”</p>
+        </div>
+        {% endif %}
+
+        <p class="tip">{{ tip }}</p>
+    </div>
+
+    <!-- ===== TRY AGAIN ===== -->
+    <a class="back-link" href="{{ url_for('scenario.show_scenario', scenario_id=scenario.id) }}">
+        🔁 Try again →
+    </a>
+
+</div>
+
+</body>
+</html>

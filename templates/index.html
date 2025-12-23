@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text Analyzer Learning Website</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+<a href="{{ url_for('admin.create_scenario') }}" class="admin-button">
+    <span>👨‍💼</span>
+    <span>Create Scenario</span>
+</a>
+
+<div class="container">
+    <h1>🌟 Learn How to Speak Kindly 🌟</h1>
+    <p>Choose a situation below and think about what you would say.</p>
+
+    <h2>📘 Default Situations</h2>
+    {% for scenario in default_scenarios %}
+    <div class="scenario-card">
+        <h3>{{ scenario.title }}</h3>
+        <a href="{{ url_for('scenario.show_scenario', scenario_id=scenario.id) }}">
+            Start this story →
+        </a>
+    </div>
+    {% endfor %}
+
+    {% if custom_scenarios %}
+    <h2>🛠 Custom Situations</h2>
+    {% for scenario in custom_scenarios %}
+    <div class="scenario-card">
+        <h3>{{ scenario.title }}</h3>
+
+        <a href="{{ url_for('scenario.show_scenario', scenario_id=scenario.id) }}">
+            Start this story →
+        </a>
+
+        <form
+            method="POST"
+            action="{{ url_for('admin.delete_scenario', scenario_id=scenario.id) }}"
+            class="delete-form"
+        >
+            <button type="submit" class="delete-button">
+                ❌ Delete
+            </button>
+        </form>
+    </div>
+    {% endfor %}
+    {% endif %}
+</div>
+
+</body>
+</html>

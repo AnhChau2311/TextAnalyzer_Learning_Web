@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text Analyzer Learning Website</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+<div class="container">
+    <h2>👨‍👩‍👧 Create a New Scenario</h2>
+
+    <form method="POST">
+        <label class="form-label">📌 Title</label>
+        <textarea
+            name="title"
+            rows="1"
+            placeholder="Enter the scenario title..."
+            required
+        ></textarea>
+
+        <label class="form-label">📖 Story</label>
+        <textarea
+            name="story"
+            rows="4"
+            placeholder="Write the story for this situation..."
+            required
+        ></textarea>
+
+        <label class="form-label">❓ Question for the child</label>
+        <textarea
+            name="question"
+            rows="2"
+            placeholder="Ask a question for the child..."
+            required
+        ></textarea>
+
+        <label class="form-label">🎯 Communication Goal</label>
+        <select name="goal">
+            <option value="giving_feedback">Giving feedback</option>
+            <option value="polite_refusal">Polite refusal</option>
+            <option value="apologizing">Apologizing</option>
+            <option value="asking_for_help">Asking for help</option>
+        </select>
+
+        <button type="submit">✨ Create Scenario</button>
+    </form>
+
+    <a class="back-link" href="{{ url_for('home.home') }}">
+        ← Back to home
+    </a>
+</div>
+
+</body>
+</html>

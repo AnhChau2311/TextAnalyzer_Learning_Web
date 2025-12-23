@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text Analyzer Learning Website</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+<a href="{{ url_for('admin.create_scenario') }}" class="admin-button">
+    <span>👨‍💼</span>
+    <span>Create Scenario</span>
+</a>
+
+<div class="container">
+    <h2>{{ scenario.title }}</h2>
+
+    <div class="story-box">
+        <p>{{ scenario.story }}</p>
+    </div>
+
+    <div class="question-box">
+        <p>❓ {{ scenario.question }}</p>
+    </div>
+
+    <form method="POST" action="{{ url_for('answer.submit_answer', scenario_id=scenario.id) }}">
+        <textarea
+            name="answer"
+            rows="4"
+            placeholder="Type what you would say here..."
+            required
+        ></textarea>
+
+        <button type="submit">✨ Submit Answer</button>
+    </form>
+
+    <a class="back-link" href="{{ url_for('home.home') }}">
+        ← Back to all situations
+    </a>
+</div>
+
+</body>
+</html>
