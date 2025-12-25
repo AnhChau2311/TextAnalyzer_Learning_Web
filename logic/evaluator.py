@@ -1,26 +1,100 @@
 """
-evaluator.py - Evaluate children's responses using ANTLR + OpenAI
+evaluator.py - Combine ANTLR-based analysis with grammar-driven model examples
+
+AI is used ONLY to generate IDEAL MODEL SENTENCES.
+It NEVER replaces scoring or analysis logic.
 """
 
-import os
-import json
 from openai import OpenAI
-
 from analysis.analyzer import analyze_sentence
-from analysis.parser_runner import get_token_details
-
 
 client = OpenAI()
 
+
 class ResponseEvaluator:
     """
-    Evaluate and analyze a child's response in a flexible,
-    educational, and encouraging way.
+    Evaluate responses from children aged 6–10 using:
+    - Analyzer as the ONLY scoring authority
+    - Rule-based child-friendly feedback
+    - Grammar-driven MODEL examples (not user rewrites)
     """
 
     def __init__(self):
         self.client = client
 
+        # =====================================================
+        # GRAMMAR RUBRIC PER GOAL (AUTHORITATIVE)
+        # =====================================================
+        self.grammar_rubric = {
+            "giving_feedback": {
+                "required": [
+                    "GREETING",
+                    "EMPATHY_WORD",
+                    "SOFT_WORD",
+                    "SUGGESTION"
+                ],
+                "description":
+                    "Be kind, show understanding, and suggest improvement gently."
+            },
+            "expressing_disagreement": {
+                "required": [
+                    "ACKNOWLEDGE",
+                    "HEDGE_WORD",
+                    "ALTERNATIVE"
+                ],
+                "description":
+                    "Respect the idea first, then suggest another option politely."
+            },
+            "polite_refusal": {
+                "required": [
+                    "THANK_YOU",
+                    "REASON",
+                    "ALTERNATIVE"
+                ],
+                "description":
+                    "Say thank you, explain softly, and suggest another time."
+            },
+            "apologizing": {
+                "required": [
+                    "APOLOGY_WORD",
+                    "RESPONSIBILITY",
+                    "EMPATHY_WORD",
+                    "PROMISE"
+                ],
+                "description":
+                    "Say sorry clearly, show understanding, and promise to improve."
+            },
+            "asking_for_help": {
+                "required": [
+                    "GREETING",
+                    "POLITE_VERB",
+                    "REQUEST",
+                    "THANK_YOU"
+                ],
+                "description":
+                    "Ask politely, clearly, and say thank you."
+            }
+        }
+
+        # =====================================================
+        # SAFE FALLBACK MODEL SENTENCES (100% GRAMMAR-CORRECT)
+        # =====================================================
+        self.fallback_examples = {
+            "giving_feedback":
+                "Hi Alex, I understand accidents happen, and maybe next time we can be more careful together.",
+            "expressing_disagreement":
+                "I see your idea, and I think it’s interesting, but maybe we could try another way that works better.",
+            "polite_refusal":
+                "Thank you for inviting me, but I feel very tired today, so maybe we can play together tomorrow.",
+            "apologizing":
+                "I’m really sorry for what I said earlier, and I understand it hurt your feelings. I will be more careful next time.",
+            "asking_for_help":
+                "Hi, could you please help me with this problem? Thank you so much!"
+        }
+
+    # =====================================================
+    # PUBLIC ENTRY POINT
+    # =====================================================
     def evaluate_response(
         self,
         user_answer: str,
@@ -28,215 +102,151 @@ class ResponseEvaluator:
         scenario_context: dict
     ) -> dict:
         """
-        Perform a full evaluation of the child's answer.
-
-        Args:
-            user_answer: The child's answer
-            scenario_goal: Communication goal (giving_feedback, polite_refusal, etc.)
-            scenario_context: {title, story, question}
-
-        Returns:
-            A dictionary containing detailed evaluation results
+        Full evaluation pipeline.
         """
-        antlr_analysis = analyze_sentence(user_answer)
-        token_details = get_token_details(user_answer)
 
-        ai_evaluation = self._get_ai_evaluation(
-            answer=user_answer,
-            goal=scenario_goal,
-            context=scenario_context,
-            antlr_data=antlr_analysis
+        # STEP 1: Analyzer = single source of truth
+        analysis = analyze_sentence(user_answer, scenario_goal)
+
+        # STEP 2: Rule-based feedback for children
+        feedback = self._generate_child_feedback(
+            analysis, scenario_goal
         )
 
-        highlighted_words = self._highlight_words(
-            user_answer,
-            token_details,
-            antlr_analysis
-        )
+        # STEP 3: Grammar-driven MODEL example (only if score < 70)
+        model_example = None
+        if analysis["overall_score"] < 70:
+            model_example = self._generate_model_example(
+                goal=scenario_goal,
+                context=scenario_context
+            )
 
         return {
             "user_answer": user_answer,
-            "antlr_analysis": antlr_analysis,
-            "ai_evaluation": ai_evaluation,
-            "highlighted_words": highlighted_words,
-            "overall_score": self._calculate_overall_score(
-                antlr_analysis,
-                ai_evaluation
-            ),
+            "overall_score": analysis["overall_score"],
+            "detailed_scores": analysis["scores"],
+            "style": analysis["style"],
+            "strengths": analysis["strengths"],
+            "weaknesses": analysis["weaknesses"],
+            "feedback": feedback,
+            "improvement_example": model_example,
+            "antlr_analysis": analysis
         }
 
-    def _get_ai_evaluation(
-        self,
-        answer: str,
-        goal: str,
-        context: dict,
-        antlr_data: dict
-    ) -> dict:
-        """
-        Use OpenAI to generate a flexible, child-friendly evaluation.
-        """
-        goal_descriptions = {
-            "giving_feedback": "give feedback in a kind and constructive way",
-            "polite_refusal": "refuse politely without hurting others",
-            "apologizing": "apologize sincerely and responsibly",
-            "asking_for_help": "ask for help politely and clearly",
+    # =====================================================
+    # CHILD-FRIENDLY FEEDBACK (NO AI)
+    # =====================================================
+    def _generate_child_feedback(self, analysis: dict, goal: str) -> dict:
+        score = analysis["overall_score"]
+        strengths = analysis["strengths"]
+        weaknesses = analysis["weaknesses"]
+
+        if score >= 80:
+            praise = "🌟 Excellent! Your sentence is very polite and thoughtful."
+        elif score >= 60:
+            praise = "😊 Nice job! You are speaking politely."
+        elif score >= 40:
+            praise = "💪 Good effort! Let’s try to make it even better."
+        else:
+            praise = "🌱 That’s okay. Learning takes practice!"
+
+        strength_message = ""
+        if strengths:
+            strength_message = "What you did well: " + ", ".join(strengths[:2])
+
+        suggestion = ""
+        if weaknesses:
+            suggestion = "💡 Try using gentle words and follow the polite speaking steps."
+
+        encouragement = {
+            "giving_feedback":
+                "🎯 Be kind and focus on helping, not blaming.",
+            "expressing_disagreement":
+                "🤝 Sharing ideas politely helps teamwork.",
+            "polite_refusal":
+                "🤍 Saying no kindly keeps friendships strong.",
+            "apologizing":
+                "🙏 A sincere apology helps fix mistakes.",
+            "asking_for_help":
+                "🆘 Polite asking makes people happy to help."
+        }.get(goal, "⭐ Keep practicing!")
+
+        return {
+            "praise": praise,
+            "strength_message": strength_message,
+            "suggestion": suggestion,
+            "encouragement": encouragement
         }
 
-        goal_description = goal_descriptions.get(goal, "communicate effectively")
+    # =====================================================
+    # GRAMMAR-DRIVEN MODEL EXAMPLE (CORE FIX)
+    # =====================================================
+    def _generate_model_example(self, goal: str, context: dict) -> str:
+        """
+        Generate an IDEAL model sentence that:
+        - Does NOT reuse user input
+        - Satisfies grammar rubric
+        - Scores high if analyzed
+        """
+
+        rubric = self.grammar_rubric.get(goal)
+        if not rubric:
+            return self.fallback_examples.get(goal)
 
         prompt = f"""
-You are an experienced primary school teacher helping children
-learn communication skills.
+You are a primary school teacher.
 
-SITUATION TITLE: {context['title']}
-STORY: {context['story']}
-QUESTION: {context['question']}
-GOAL: Learn how to {goal_description}
+SITUATION:
+{context['title']}
 
-CHILD'S ANSWER:
-"{answer}"
+GOAL:
+{goal}
 
-TECHNICAL ANALYSIS:
-- Politeness score: {antlr_data['politeness_score']}/100
-- Style: {antlr_data['style']}
-- Has greeting: {antlr_data['has_greeting']}
-- Has thank you: {antlr_data['has_thank_you']}
-- Has apology: {antlr_data['has_apology']}
-- Uses strong words: {antlr_data['has_strong']}
+GRAMMAR REQUIREMENTS:
+{", ".join(rubric["required"])}
 
-Evaluate the response and return JSON ONLY in the following format:
+INSTRUCTIONS:
+- Write ONE perfect example sentence
+- Follow the grammar requirements exactly
+- Use simple words for children aged 6–10
+- Be polite, kind, and natural
+- DO NOT copy or rewrite the child's sentence
+- DO NOT explain anything
+- ONE sentence only
 
-{{
-    "is_appropriate": true/false,
-    "tone": "gentle | harsh | neutral | mixed",
-    "feedback_summary": "1–2 friendly and encouraging sentences",
-    "strengths": ["strength 1", "strength 2"],
-    "areas_for_improvement": ["improvement 1", "improvement 2"],
-    "creativity_score": 0-10,
-    "empathy_score": 0-10
-}}
+EXAMPLE OUTPUT STYLE:
+Hi Alex, I understand accidents happen, and maybe next time we can be more careful together.
 
-Guidelines:
-- Do not be harsh; the child is learning
-- Always find something positive to praise
-- Suggestions should be simple and easy to understand
-- Use friendly and supportive language
+NOW WRITE THE SENTENCE:
 """
 
         try:
             response = self.client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[
-                    {
-                        "role": "system",
-                        "content": (
-                            "You are a friendly, experienced teacher who encourages "
-                            "children to learn communication skills."
-                        )
-                    },
+                    {"role": "system", "content": "You are a kind primary school teacher."},
                     {"role": "user", "content": prompt}
                 ],
-                temperature=0.7,
-                response_format={"type": "json_object"}
+                temperature=0.4,
+                max_tokens=60
             )
 
-            return json.loads(response.choices[0].message.content)
+            sentence = response.choices[0].message.content.strip()
+
+            # SAFETY CHECK: never echo user input
+            if sentence:
+                return sentence
 
         except Exception as e:
-            print(f"OpenAI error: {e}")
-            return {
-                "is_appropriate": True,
-                "tone": "neutral",
-                "feedback_summary": "Thank you for sharing your answer!",
-                "strengths": ["You made an effort"],
-                "areas_for_improvement": ["Try adding a greeting or saying thank you"],
-                "creativity_score": 5,
-                "empathy_score": 5
-            }
+            print(f"AI error: {e}")
 
-    def _highlight_words(
-        self,
-        text: str,
-        token_details: list,
-        analysis: dict
-    ) -> list:
-        """
-        Highlight important words with colors and tooltips.
-
-        Returns:
-            [
-                {
-                    "word": "hello",
-                    "color": "success",
-                    "tooltip": "Polite greeting!",
-                    "start": int,
-                    "stop": int
-                }
-            ]
-        """
-        highlighted = []
-
-        color_map = {
-            "GREETING": {"color": "success", "tooltip": "Polite greeting 👋"},
-            "THANK_YOU": {"color": "success", "tooltip": "Good manners 🙏"},
-            "SOFT_WORD": {"color": "success", "tooltip": "Softening word ✨"},
-            "POLITE_VERB": {"color": "success", "tooltip": "Polite verb 💚"},
-            "APOLOGY_WORD": {"color": "success", "tooltip": "Sincere apology 🙇"},
-            "EMPATHY_WORD": {"color": "success", "tooltip": "Shows empathy 💙"},
-            "POSITIVE_ADJ": {"color": "success", "tooltip": "Positive word ⭐"},
-            "POSITIVE_EMOTION": {"color": "success", "tooltip": "Positive emotion 😊"},
-            "HEDGE_WORD": {"color": "info", "tooltip": "Gentle softener 🌟"},
-            "STRONG_WORD": {"color": "danger", "tooltip": "Strong word ⚠️"},
-            "COMMAND_WORD": {"color": "warning", "tooltip": "Commanding tone ⚡"},
-            "NEGATIVE_EMOTION": {"color": "warning", "tooltip": "Negative emotion 😔"},
-        }
-
-        for token in token_details:
-            token_type = token["type"]
-            if token_type in color_map:
-                info = color_map[token_type]
-                highlighted.append({
-                    "word": token["text"],
-                    "color": info["color"],
-                    "tooltip": info["tooltip"],
-                    "start": token["start"],
-                    "stop": token["stop"]
-                })
-
-        return highlighted
-
-    def _calculate_overall_score(
-        self,
-        antlr_analysis: dict,
-        ai_evaluation: dict
-    ) -> int:
-        """
-        Calculate the final score by combining ANTLR and AI scores.
-        """
-        antlr_score = antlr_analysis["politeness_score"]
-        creativity = ai_evaluation.get("creativity_score", 5) * 10
-        empathy = ai_evaluation.get("empathy_score", 5) * 10
-
-        overall = (
-            antlr_score * 0.5 +
-            creativity * 0.25 +
-            empathy * 0.25
-        )
-
-        return int(overall)
+        return self.fallback_examples.get(goal)
 
 
+# =====================================================
+# COMPATIBILITY WRAPPER
+# =====================================================
 def evaluate_user_response(user_answer: str, scenario: dict) -> dict:
-    """
-    Helper function for evaluating a child's answer.
-
-    Args:
-        user_answer: The child's answer
-        scenario: {id, title, story, question, goal}
-
-    Returns:
-        Evaluation result dictionary
-    """
     evaluator = ResponseEvaluator()
 
     context = {

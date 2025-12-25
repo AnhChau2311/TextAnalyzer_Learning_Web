@@ -1,249 +1,192 @@
-from analysis.parser_runner import parse_sentence
+"""
+analyzer.py - Context-aware sentence analyzer (Education-first version)
+
+Designed for children aged 6–10.
+Prioritizes emotional safety, kindness, and clarity over technical perfection.
+"""
+
+import re
+from analysis.parser_runner import parse_sentence, get_token_details
 
 
-def analyze_sentence(text: str) -> dict:
+class ContextAwareAnalyzer:
     """
-    Analyze a sentence using lexical and semantic features
-    to evaluate children's communication style.
+    Analyze a sentence with emphasis on:
+    - Emotional safety
+    - Politeness basics
+    - Goal appropriateness (soft)
+    - Child-friendly communication
     """
-    tokens = parse_sentence(text)
 
-    # Count occurrences of each token type
-    token_counts = {}
-    for token in tokens:
-        token_counts[token] = token_counts.get(token, 0) + 1
+    def __init__(self):
+        # ============================
+        # SENTIMENT PATTERNS
+        # ============================
+        self.sentiment_patterns = {
+            "positive": [
+                r"\b(okay|ok|fine|good|nice|great|happy|glad)\b"
+            ],
+            "negative": [
+                r"\b(hate|angry|sad|upset|terrible|awful|bad)\b",
+                r"\b(stupid|dumb|worst)\b"
+            ],
+            "empathy": [
+                r"\b(understand|know|feel|realize)\b",
+                r"\b(didn't mean|accident)\b"
+            ],
+            "apology": [
+                r"\b(sorry|apologize|my fault|my bad)\b"
+            ]
+        }
 
-    # Extract linguistic features
-    analysis = {
-        # Politeness-related features
-        "has_greeting": "GREETING" in tokens,
-        "has_thank_you": "THANK_YOU" in tokens,
-        "has_softening": "SOFT_WORD" in tokens or "HEDGE_WORD" in tokens,
-        "has_polite_verb": "POLITE_VERB" in tokens,
-        "has_please": "please" in text.lower(),
+        # ============================
+        # STRUCTURE PATTERNS
+        # ============================
+        self.polite_patterns = [
+            r"\b(hi|hello)\b",
+            r"\b(please)\b",
+            r"\b(thank you|thanks)\b",
+            r"\b(could you|would you|can i|may i)\b",
+            r"\b(maybe|i think|perhaps)\b"
+        ]
 
-        # Apology and empathy features
-        "has_apology": "APOLOGY_WORD" in tokens,
-        "has_empathy": "EMPATHY_WORD" in tokens,
+        self.command_patterns = [
+            r"\b(you must|give me|do it now)\b"
+        ]
 
-        # Negative language features
-        "has_strong": "STRONG_WORD" in tokens,
-        "has_command": "COMMAND_WORD" in tokens,
-        "has_negation": "NEGATION" in tokens,
-        "has_negative_emotion": "NEGATIVE_EMOTION" in tokens,
+    # =====================================================
+    # PUBLIC ENTRY
+    # =====================================================
+    def analyze_sentence(self, text: str, scenario_goal: str = None) -> dict:
+        text_lower = text.lower()
 
-        # Positive language features
-        "has_positive_adj": "POSITIVE_ADJ" in tokens,
-        "has_positive_emotion": "POSITIVE_EMOTION" in tokens,
+        tokens = parse_sentence(text)
+        token_details = get_token_details(text)
 
-        # Question-related features
-        "has_question": "QUESTION_WORD" in tokens,
+        sentiment = self._analyze_sentiment(text_lower)
+        structure = self._analyze_structure(text_lower)
 
-        # Quantitative counts
-        "strong_word_count": token_counts.get("STRONG_WORD", 0),
-        "soft_word_count": (
-            token_counts.get("SOFT_WORD", 0) +
-            token_counts.get("HEDGE_WORD", 0)
-        ),
-        "polite_element_count": (
-            token_counts.get("SOFT_WORD", 0) +
-            token_counts.get("HEDGE_WORD", 0) +
-            token_counts.get("POLITE_VERB", 0) +
-            token_counts.get("THANK_YOU", 0) +
-            token_counts.get("GREETING", 0)
-        ),
+        scores = self._calculate_scores(
+            text_lower,
+            sentiment,
+            structure,
+            scenario_goal
+        )
 
-        # Debugging information
-        "tokens": tokens,
-        "token_counts": token_counts
-    }
+        style = self._determine_style(scores)
 
-    # Compute politeness score
-    analysis["politeness_score"] = calculate_politeness_score(analysis)
+        return {
+            "tokens": tokens,
+            "token_details": token_details,
+            "sentiment": sentiment,
+            "structure": structure,
+            "scores": scores,
+            "overall_score": scores["overall"],
+            "style": style,
+            "strengths": self._strengths(text_lower, sentiment),
+            "weaknesses": self._weaknesses(text_lower, sentiment, scenario_goal)
+        }
 
-    # Determine overall communication style
-    analysis["style"] = determine_style(analysis)
+    # =====================================================
+    # ANALYSIS HELPERS
+    # =====================================================
+    def _analyze_sentiment(self, text: str) -> dict:
+        result = {}
+        for k, patterns in self.sentiment_patterns.items():
+            result[k] = sum(len(re.findall(p, text)) for p in patterns)
+        return result
 
-    # Infer communication goal
-    analysis["goal"] = determine_goal(analysis, text)
+    def _analyze_structure(self, text: str) -> dict:
+        polite = sum(len(re.findall(p, text)) for p in self.polite_patterns)
+        command = sum(len(re.findall(p, text)) for p in self.command_patterns)
+        return {
+            "polite": polite,
+            "command": command
+        }
 
-    # Generate improvement suggestions
-    analysis["suggestions"] = get_suggestions(analysis)
+    # =====================================================
+    # SCORING (NEW RUBRIC)
+    # =====================================================
+    def _calculate_scores(self, text, sentiment, structure, goal):
+        score = 0
 
-    return analysis
+        # 1️⃣ Emotional safety (40)
+        if sentiment["negative"] == 0:
+            score += 15
+        if sentiment["empathy"] > 0:
+            score += 15
+        if sentiment["positive"] > 0 or sentiment["empathy"] > 0:
+            score += 10
 
+        # 2️⃣ Politeness basics (25)
+        score += min(25, structure["polite"] * 5)
 
-def calculate_politeness_score(analysis: dict) -> int:
-    """
-    Calculate a politeness score ranging from 0 to 100.
-    """
-    score = 50  # Base score
+        # 3️⃣ Goal appropriateness (20 - soft)
+        if goal == "giving_feedback":
+            if sentiment["empathy"] > 0 or "maybe" in text:
+                score += 20
+        elif goal == "polite_refusal":
+            if "thank" in text or "because" in text:
+                score += 20
+        elif goal == "apologizing":
+            if sentiment["apology"] > 0:
+                score += 20
+        elif goal == "asking_for_help":
+            if re.search(r"\b(could|can|please)\b", text):
+                score += 20
+        else:
+            score += 15
 
-    # Increase score for polite elements
-    if analysis["has_greeting"]:
+        # 4️⃣ Structure clarity (15)
         score += 10
-    if analysis["has_thank_you"]:
-        score += 10
-    if analysis["has_softening"]:
-        score += 15
-    if analysis["has_polite_verb"]:
-        score += 10
-    if analysis["has_please"]:
-        score += 10
-    if analysis["has_apology"]:
-        score += 10
-    if analysis["has_empathy"]:
-        score += 10
-    if analysis["has_positive_adj"] or analysis["has_positive_emotion"]:
-        score += 5
+        if structure["command"] == 0:
+            score += 5
 
-    # Decrease score for negative elements
-    if analysis["has_strong"]:
-        score -= 20 * analysis["strong_word_count"]
-    if analysis["has_command"]:
-        score -= 15
-    if analysis["has_negative_emotion"]:
-        score -= 10
+        # Penalties
+        if sentiment["negative"] > 0:
+            score -= 10
+        if structure["command"] > 0:
+            score -= 10
 
-    return max(0, min(100, score))
+        return {
+            "overall": max(0, min(100, int(score)))
+        }
 
-
-def determine_style(analysis: dict) -> str:
-    """
-    Determine the overall communication style.
-    Possible values: gentle, harsh, mixed, polite, direct, neutral.
-    """
-    polite_count = analysis["polite_element_count"]
-    strong_count = analysis["strong_word_count"]
-
-    if polite_count >= 2 and strong_count == 0:
-        return "gentle"
-    elif strong_count >= 2 and polite_count == 0:
+    # =====================================================
+    # STYLE & FEEDBACK
+    # =====================================================
+    def _determine_style(self, scores):
+        s = scores["overall"]
+        if s >= 85:
+            return "very_polite"
+        if s >= 70:
+            return "polite"
+        if s >= 55:
+            return "neutral"
+        if s >= 40:
+            return "needs_improvement"
         return "harsh"
-    elif strong_count > 0 and polite_count > 0:
-        return "mixed"
-    elif polite_count > 0:
-        return "polite"
-    elif strong_count > 0:
-        return "direct"
-    else:
-        return "neutral"
+
+    def _strengths(self, text, sentiment):
+        s = []
+        if sentiment["empathy"] > 0:
+            s.append("Shows understanding and kindness")
+        if "hello" in text or "hi" in text:
+            s.append("Uses a friendly greeting")
+        return s
+
+    def _weaknesses(self, text, sentiment, goal):
+        w = []
+        if sentiment["empathy"] == 0:
+            w.append("Could show a little more understanding")
+        if goal == "giving_feedback" and "maybe" not in text:
+            w.append("Could add a gentle suggestion")
+        return w
 
 
-def determine_goal(analysis: dict, text: str) -> str:
-    """
-    Infer the communicative intent of the sentence.
-    """
-    text_lower = text.lower()
-
-    if analysis["has_apology"] or "sorry" in text_lower or "apologize" in text_lower:
-        return "apologizing"
-
-    if "help" in text_lower or "assist" in text_lower or "need" in text_lower:
-        if analysis["has_polite_verb"] or analysis["has_softening"]:
-            return "asking_for_help"
-        return "demanding_help"
-
-    if any(word in text_lower for word in ["no", "can't", "cannot", "won't", "unable"]):
-        if analysis["has_softening"] or analysis["has_apology"]:
-            return "polite_refusal"
-        return "direct_refusal"
-
-    if any(word in text_lower for word in ["think", "feel", "believe", "suggest"]):
-        if analysis["has_strong"]:
-            return "critical_feedback"
-        if analysis["has_softening"]:
-            return "gentle_feedback"
-        return "giving_feedback"
-
-    if analysis["has_thank_you"]:
-        return "expressing_gratitude"
-
-    if analysis["has_greeting"]:
-        return "greeting"
-
-    if analysis["has_question"] or text.strip().endswith("?"):
-        return "asking_question"
-
-    return "general_statement"
-
-
-def get_suggestions(analysis: dict) -> list:
-    """
-    Generate improvement suggestions based on missing or weak features.
-    """
-    suggestions = []
-
-    if not analysis["has_greeting"] and analysis["politeness_score"] < 70:
-        suggestions.append("Try starting with a greeting such as 'Hi' or 'Hello'.")
-
-    if analysis["has_strong"] and not analysis["has_softening"]:
-        suggestions.append(
-            "Try adding softening words like 'maybe', 'I think', or 'could'."
-        )
-
-    if analysis["has_command"] and not analysis["has_polite_verb"]:
-        suggestions.append(
-            "Consider using polite forms like 'could you' or 'would you'."
-        )
-
-    if analysis["goal"] in ["asking_for_help", "general_statement"] and not analysis["has_thank_you"]:
-        suggestions.append("Try ending your sentence with 'thank you' or 'thanks'.")
-
-    if analysis["has_apology"] and not analysis["has_empathy"]:
-        suggestions.append(
-            "Show empathy by saying phrases like 'I understand' or 'I realize'."
-        )
-
-    if analysis["strong_word_count"] >= 2:
-        suggestions.append(
-            "There are too many strong words. Try reducing them to sound gentler."
-        )
-
-    if analysis["politeness_score"] < 30:
-        suggestions.append(
-            "This sentence needs more politeness. Try adding 'please', 'thank you', or 'sorry'."
-        )
-
-    return suggestions
-
-
-def get_detailed_feedback(analysis: dict, context: str = "general") -> dict:
-    """
-    Generate detailed feedback including strengths and areas for improvement.
-    """
-    score = analysis["politeness_score"]
-    style = analysis["style"]
-
-    feedback = {
-        "score": score,
-        "style": style,
-        "summary": "",
-        "strengths": [],
-        "improvements": [],
-        "example": ""
-    }
-
-    if score >= 80:
-        feedback["summary"] = "Excellent! Your sentence is very polite and thoughtful."
-    elif score >= 60:
-        feedback["summary"] = "Good job! Your sentence is fairly polite."
-    elif score >= 40:
-        feedback["summary"] = "Not bad, but it could be improved to sound more polite."
-    else:
-        feedback["summary"] = "This sentence needs improvement to sound kinder and more respectful."
-
-    if analysis["has_greeting"]:
-        feedback["strengths"].append("Uses a greeting")
-    if analysis["has_thank_you"]:
-        feedback["strengths"].append("Includes a thank-you expression")
-    if analysis["has_softening"]:
-        feedback["strengths"].append("Uses softening language")
-    if analysis["has_apology"]:
-        feedback["strengths"].append("Includes an apology")
-    if analysis["has_empathy"]:
-        feedback["strengths"].append("Shows empathy")
-
-    feedback["improvements"] = analysis["suggestions"]
-
-    return feedback
+# =====================================================
+# COMPATIBILITY WRAPPER
+# =====================================================
+def analyze_sentence(text: str, scenario_goal: str = None) -> dict:
+    analyzer = ContextAwareAnalyzer()
+    return analyzer.analyze_sentence(text, scenario_goal)

@@ -1,6 +1,7 @@
 from flask import Flask
 from config import Config
 
+
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
@@ -23,4 +24,10 @@ def create_app():
 
 if __name__ == "__main__":
     app = create_app()
-    app.run(debug=True)
+
+    # Run on a different host and port
+    app.run(
+        host="0.0.0.0",   # allow access via localhost, LAN, VM
+        port=8000,        # change port to avoid 5000 conflict
+        debug=True
+    )

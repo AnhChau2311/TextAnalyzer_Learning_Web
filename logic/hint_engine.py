@@ -1,9 +1,8 @@
 """
-hint_engine.py - Generate flexible improvement hints
-based on the child's actual response.
+hint_engine.py - Generate smart improvement hints for children
+Templates are prioritized; AI is used only when necessary.
 """
 
-import os
 import random
 from openai import OpenAI
 
@@ -12,197 +11,238 @@ client = OpenAI()
 
 class HintEngine:
     """
-    Engine for generating adaptive hints to improve a child's response.
+    Engine for generating improvement hints
+    in a child-friendly and educational way.
     """
 
     def __init__(self):
         self.client = client
+
+        # Hint templates grouped by communication goal
+        self.hint_templates = {
+            "giving_feedback": {
+                "missing_softening": [
+                    "💡 Try adding 'I think...' or 'Maybe...' before giving feedback!",
+                    "💡 Using 'You could try...' sounds gentler.",
+                    "💡 Starting with 'In my opinion...' makes it easier to hear."
+                ],
+                "has_strong_words": [
+                    "💡 Instead of 'wrong', try 'maybe we can do it another way?'",
+                    "💡 Say 'not very good yet' instead of 'bad'.",
+                    "💡 'Not suitable yet' sounds kinder than 'incorrect'."
+                ],
+                "missing_positive": [
+                    "💡 Try saying something good before giving feedback!",
+                    "💡 Start with 'I like this, but...' to sound nicer.",
+                    "💡 Praising first helps others listen better."
+                ]
+            },
+            "polite_refusal": {
+                "missing_thank": [
+                    "💡 Try thanking the invitation before refusing.",
+                    "💡 'Thank you for inviting me, but...' sounds polite.",
+                    "💡 Starting with 'Thanks!' helps keep friendships."
+                ],
+                "missing_reason": [
+                    "💡 Explaining the reason helps others understand.",
+                    "💡 Adding 'because...' makes your refusal clearer.",
+                    "💡 A reason avoids misunderstandings."
+                ],
+                "missing_alternative": [
+                    "💡 Suggest another time: 'Maybe next time!'",
+                    "💡 'How about another day?' shows you still care.",
+                    "💡 Offering an alternative softens a refusal."
+                ]
+            },
+            "apologizing": {
+                "missing_apology": [
+                    "💡 Don’t forget to say 'I’m sorry'!",
+                    "💡 A sincere apology is the first step to fixing things.",
+                    "💡 'I’m sorry' is short but very important."
+                ],
+                "missing_empathy": [
+                    "💡 Try adding 'I understand you feel sad.'",
+                    "💡 'I know that hurt you' shows understanding.",
+                    "💡 Showing empathy helps others feel better."
+                ],
+                "missing_promise": [
+                    "💡 Promise to improve: 'I will be more careful next time.'",
+                    "💡 'I’ll try to do better' makes your apology stronger.",
+                    "💡 A promise shows you really want to change."
+                ]
+            },
+            "asking_for_help": {
+                "missing_polite_verb": [
+                    "💡 Use 'Could you...' or 'Can you help me?'",
+                    "💡 'Please help me...' sounds polite.",
+                    "💡 'Could you please...' is better than giving orders."
+                ],
+                "missing_thank": [
+                    "💡 Ending with 'Thank you!' is very polite.",
+                    "💡 'Thanks!' is short but important.",
+                    "💡 People feel happy when they hear 'thank you'."
+                ],
+                "unclear_request": [
+                    "💡 Say clearly what you need help with.",
+                    "💡 'I need help with...' makes it clearer.",
+                    "💡 Clear requests get better help."
+                ]
+            }
+        }
 
     def generate_hint(
         self,
         user_answer: str,
         scenario: dict,
         evaluation: dict
-    ) -> str:
+    ) -> dict:
         """
-        Generate an improvement hint based on the real response.
-
-        Args:
-            user_answer: The child's answer
-            scenario: Scenario dictionary
-            evaluation: Evaluation result
+        Generate a complete hint package.
 
         Returns:
-            A concrete, child-friendly hint
+            {
+                "hint_text": str,
+                "tips": list,
+                "example_phrases": list
+            }
         """
-        if evaluation["overall_score"] >= 80:
-            return self._generate_encouragement_hint(
-                user_answer, scenario
-            )
 
-        return self._generate_improvement_hint(
-            user_answer, scenario, evaluation
-        )
+        score = evaluation["overall_score"]
+        goal = scenario["goal"]
+        weaknesses = evaluation.get("weaknesses", [])
 
-    def _generate_encouragement_hint(
+        if score >= 85:
+            return self._generate_excellence_hint(goal)
+
+        hint_text = self._select_hint_from_template(goal, weaknesses)
+        tips = self._get_goal_tips(goal)
+        example_phrases = self._get_example_phrases(goal)
+
+        return {
+            "hint_text": hint_text,
+            "tips": tips,
+            "example_phrases": example_phrases
+        }
+
+    def _generate_excellence_hint(self, goal: str) -> dict:
+        """Hint for excellent responses."""
+
+        excellence_messages = {
+            "giving_feedback":
+                "🌟 Excellent! Your feedback is kind and thoughtful.",
+            "polite_refusal":
+                "🌟 Perfect! Your refusal is very polite and respectful.",
+            "apologizing":
+                "🌟 Great job! Your apology sounds sincere.",
+            "asking_for_help":
+                "🌟 Well done! You asked for help very politely."
+        }
+
+        return {
+            "hint_text": excellence_messages.get(
+                goal,
+                "🌟 Excellent! Your sentence is very good."
+            ),
+            "tips": [
+                "⭐ Remember this way of speaking and use it again!"
+            ],
+            "example_phrases": []
+        }
+
+    def _select_hint_from_template(
         self,
-        answer: str,
-        scenario: dict
+        goal: str,
+        weaknesses: list
     ) -> str:
-        """
-        Generate a short encouragement when the answer is already good.
-        """
-        prompt = f"""
-A student has answered very well in the following situation:
+        """Select the most relevant hint based on weaknesses."""
 
-SITUATION: {scenario['title']}
-STUDENT'S ANSWER: "{answer}"
-
-Write a short encouragement (1–2 sentences) to motivate the student.
-You may gently suggest one small improvement to make the answer even better.
-
-Use a friendly teacher-like tone.
-DO NOT use bullet points or markdown formatting.
-"""
-
-        try:
-            response = self.client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=[
-                    {
-                        "role": "system",
-                        "content": (
-                            "You are a supportive teacher who encourages students."
-                        )
-                    },
-                    {"role": "user", "content": prompt}
-                ],
-                temperature=0.8,
-                max_tokens=150
-            )
-
-            return response.choices[0].message.content.strip()
-
-        except Exception as e:
-            print(f"Error generating encouragement hint: {e}")
+        if goal not in self.hint_templates:
             return (
-                "Great job! Your answer is kind and polite. "
-                "Keep using this friendly communication style!"
+                "💡 Try adding a greeting and a thank-you "
+                "to sound more polite."
             )
 
-    def _generate_improvement_hint(
-        self,
-        answer: str,
-        scenario: dict,
-        evaluation: dict
-    ) -> str:
-        """
-        Generate a concrete improvement hint based on the response.
-        """
-        ai_areas = evaluation["ai_evaluation"].get(
-            "areas_for_improvement", []
-        )
-        antlr_suggestions = evaluation["antlr_analysis"].get(
-            "suggestions", []
-        )
+        templates = self.hint_templates[goal]
 
-        all_improvements = ai_areas + antlr_suggestions
+        for weakness in weaknesses:
+            if "Missing a greeting" in weakness and "missing_greeting" in templates:
+                return random.choice(templates["missing_greeting"])
+            if "Missing a thank-you" in weakness and "missing_thank" in templates:
+                return random.choice(templates["missing_thank"])
+            if "Uses strong or harsh words" in weakness and "has_strong_words" in templates:
+                return random.choice(templates["has_strong_words"])
+            if "Sounds too commanding" in weakness and "missing_polite_verb" in templates:
+                return random.choice(templates["missing_polite_verb"])
+            if "Missing an apology" in weakness and "missing_apology" in templates:
+                return random.choice(templates["missing_apology"])
+            if "Missing softening words" in weakness and "missing_softening" in templates:
+                return random.choice(templates["missing_softening"])
 
-        prompt = f"""
-A student is learning communication skills:
+        first_key = list(templates.keys())[0]
+        return random.choice(templates[first_key])
 
-SITUATION: {scenario['title']}
-STORY: {scenario['story']}
-GOAL: {scenario['goal']}
+    def _get_goal_tips(self, goal: str) -> list:
+        """Return short tips based on the communication goal."""
 
-STUDENT'S ANSWER: "{answer}"
+        tips_map = {
+            "giving_feedback": [
+                "🎯 Formula: Praise + Suggestion + Encouragement",
+                "🎯 Use 'I think...' instead of blaming",
+                "🎯 Focus on solutions, not mistakes"
+            ],
+            "polite_refusal": [
+                "🎯 Formula: Thank + Reason + Alternative",
+                "🎯 Explain your reason clearly",
+                "🎯 Suggest another time"
+            ],
+            "apologizing": [
+                "🎯 Formula: Apology + Empathy + Promise",
+                "🎯 Say clearly what you are sorry for",
+                "🎯 Show you understand the other person"
+            ],
+            "asking_for_help": [
+                "🎯 Formula: Greeting + Polite request + Thank you",
+                "🎯 Use 'Could you...' instead of commands",
+                "🎯 Explain what help you need"
+            ]
+        }
 
-AREAS TO IMPROVE:
-{chr(10).join(f"- {item}" for item in all_improvements[:3])}
+        return tips_map.get(
+            goal,
+            ["💡 Greetings and thank-yous are always helpful."]
+        )[:2]
 
-Write a concrete hint (2–3 sentences) to help the student improve.
-The hint should:
-1. Start by acknowledging something the student did well
-2. Give a SPECIFIC example of a better way to say it (you may write a sample sentence)
-3. Explain WHY that way is better
+    def _get_example_phrases(self, goal: str) -> list:
+        """Return example phrases for the goal."""
 
-Use simple, friendly language.
-DO NOT use bullet points or markdown formatting.
-"""
+        phrases_map = {
+            "giving_feedback": [
+                "I think maybe...",
+                "You could try...",
+                "In my opinion...",
+                "Perhaps we can..."
+            ],
+            "polite_refusal": [
+                "Thank you for inviting me, but...",
+                "I would love to, but...",
+                "Maybe another day!",
+                "How about next time?"
+            ],
+            "apologizing": [
+                "I’m sorry about...",
+                "I didn’t mean to...",
+                "I understand you feel...",
+                "I will try to..."
+            ],
+            "asking_for_help": [
+                "Could you help me?",
+                "Please help me...",
+                "I need help with...",
+                "Thank you very much!"
+            ]
+        }
 
-        try:
-            response = self.client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=[
-                    {
-                        "role": "system",
-                        "content": (
-                            "You are a patient teacher who explains things clearly."
-                        )
-                    },
-                    {"role": "user", "content": prompt}
-                ],
-                temperature=0.8,
-                max_tokens=250
-            )
-
-            return response.choices[0].message.content.strip()
-
-        except Exception as e:
-            print(f"Error generating improvement hint: {e}")
-            return (
-                "You can try adding a greeting and saying thank you "
-                "to make your sentence sound more polite."
-            )
-
-    def generate_alternative_response(
-        self,
-        scenario: dict,
-        user_answer: str
-    ) -> str:
-        """
-        Generate a model answer inspired by the student's response.
-        """
-        prompt = f"""
-A student is learning how to {scenario['goal']}.
-
-SITUATION: {scenario['title']}
-STORY: {scenario['story']}
-
-STUDENT'S ANSWER: "{user_answer}"
-
-Write a BETTER model answer for this situation.
-The model answer should:
-- Keep part of the student's original idea
-- Add polite elements such as greetings, thanks, or apologies (if appropriate)
-- Use gentle and kind words
-- Be suitable for primary school children
-
-ONLY write the model answer.
-DO NOT explain anything.
-"""
-
-        try:
-            response = self.client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=[
-                    {
-                        "role": "system",
-                        "content": (
-                            "You are a teacher skilled at writing model answers."
-                        )
-                    },
-                    {"role": "user", "content": prompt}
-                ],
-                temperature=0.9,
-                max_tokens=100
-            )
-
-            return response.choices[0].message.content.strip().strip('"')
-
-        except Exception as e:
-            print(f"Error generating alternative response: {e}")
-            return None
+        return phrases_map.get(goal, [])[:3]
 
 
 def get_smart_hint(
@@ -211,84 +251,7 @@ def get_smart_hint(
     evaluation: dict
 ) -> dict:
     """
-    Retrieve a smart hint package.
-
-    Returns:
-        {
-            "hint_text": "...",
-            "alternative_response": "...",
-            "tip": "..."
-        }
+    Compatibility wrapper for existing code.
     """
     engine = HintEngine()
-
-    hint_text = engine.generate_hint(
-        user_answer, scenario, evaluation
-    )
-
-    alternative = None
-    if evaluation["overall_score"] < 60:
-        alternative = engine.generate_alternative_response(
-            scenario, user_answer
-        )
-
-    tip = _get_goal_specific_tip(
-        scenario["goal"], evaluation
-    )
-
-    return {
-        "hint_text": hint_text,
-        "alternative_response": alternative,
-        "tip": tip
-    }
-
-
-def _get_goal_specific_tip(goal: str, evaluation: dict) -> str:
-    """
-    Return a short tip based on the learning goal
-    and missing language elements.
-    """
-    has_greeting = evaluation["antlr_analysis"].get("has_greeting", False)
-    has_thank_you = evaluation["antlr_analysis"].get("has_thank_you", False)
-    has_apology = evaluation["antlr_analysis"].get("has_apology", False)
-    has_softening = evaluation["antlr_analysis"].get("has_softening", False)
-
-    tips_map = {
-        "giving_feedback": [
-            "💡 Start your opinion with 'I think...' or 'Maybe...' to sound gentler.",
-            "💡 Using 'could' instead of 'should' feels kinder!",
-            "💡 Praising first makes feedback easier to accept."
-        ],
-        "polite_refusal": [
-            "💡 When refusing, try thanking the person first!",
-            "💡 Explaining your reason helps others understand.",
-            "💡 You can suggest another time: 'Maybe next time?'"
-        ],
-        "apologizing": [
-            "💡 A sincere apology clearly says what you are sorry for.",
-            "💡 Showing understanding helps others feel better.",
-            "💡 Promising to improve is a strong part of an apology."
-        ],
-        "asking_for_help": [
-            "💡 Starting with 'Could you please...' sounds very polite!",
-            "💡 Explain why you need help.",
-            "💡 Ending with 'Thank you!' is always a good idea."
-        ]
-    }
-
-    goal_tips = tips_map.get(goal, [
-        "💡 Greetings and thank-yous make sentences kinder.",
-        "💡 Use 'please' when asking for something.",
-        "💡 Gentle words make communication better."
-    ])
-
-    if goal == "apologizing" and not has_apology:
-        return "💡 Don’t forget to say 'I'm sorry' when apologizing."
-
-    if goal == "asking_for_help":
-        if not has_thank_you:
-            return "💡 Ending with 'Thank you!' makes your request polite."
-        if not has_softening:
-            return "💡 Try 'Could you please...' instead of 'Can you...'."
-
-    return random.choice(goal_tips)
+    return engine.generate_hint(user_answer, scenario, evaluation)

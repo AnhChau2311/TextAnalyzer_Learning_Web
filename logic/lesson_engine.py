@@ -1,297 +1,318 @@
 """
-lesson_engine.py - Generate personalized lessons based on the story
-and the child's response.
+lesson_engine.py - Generate personalized lessons for children
 """
 
-import os
-from openai import OpenAI
+import random
 
-client = OpenAI()
 
 class LessonEngine:
     """
-    Engine for generating personalized, educational lessons
-    for children based on their answers.
+    Engine for generating personalized lessons
+    suitable for children aged 6–10.
     """
 
     def __init__(self):
-        self.client = client
+        # Lessons grouped by communication goal
+        self.lessons = {
+            "giving_feedback": {
+                "title": "💬 Giving Kind Feedback",
+                "principle": (
+                    "Giving feedback helps others improve, "
+                    "not to criticize them!"
+                ),
+                "steps": [
+                    "1️⃣ Say something good first",
+                    "2️⃣ Use gentle words (I think, maybe...)",
+                    "3️⃣ Give suggestions instead of blaming",
+                    "4️⃣ Encourage and show trust"
+                ],
+                "examples": {
+                    "bad":
+                        "❌ \"That drawing is terrible! Everything is wrong!\"",
+                    "good":
+                        "✅ \"Your picture has nice colors! "
+                        "I think adding more details could make it even better!\""
+                }
+            },
+            "polite_refusal": {
+                "title": "🤝 Polite Refusal",
+                "principle": (
+                    "A polite refusal helps keep friendships "
+                    "and avoids hurting others."
+                ),
+                "steps": [
+                    "1️⃣ Say thank you",
+                    "2️⃣ Explain the reason",
+                    "3️⃣ Show regret",
+                    "4️⃣ Suggest another time"
+                ],
+                "examples": {
+                    "bad":
+                        "❌ \"No! I don’t want to play!\"",
+                    "good":
+                        "✅ \"Thank you for inviting me! "
+                        "I’m very tired today. "
+                        "Maybe we can play together tomorrow?\""
+                }
+            },
+            "apologizing": {
+                "title": "🙏 Sincere Apology",
+                "principle": (
+                    "A good apology means taking responsibility, "
+                    "showing empathy, and promising to improve."
+                ),
+                "steps": [
+                    "1️⃣ Say sorry clearly",
+                    "2️⃣ Explain what you are sorry for",
+                    "3️⃣ Show you understand the other person’s feelings",
+                    "4️⃣ Promise to be more careful"
+                ],
+                "examples": {
+                    "bad":
+                        "❌ \"Sorry.\" (too short and not sincere)",
+                    "good":
+                        "✅ \"I’m sorry for losing your pencil. "
+                        "I know it was important to you. "
+                        "I will be more careful next time!\""
+                }
+            },
+            "asking_for_help": {
+                "title": "🆘 Asking for Help Politely",
+                "principle": (
+                    "Asking politely makes others happy to help you!"
+                ),
+                "steps": [
+                    "1️⃣ Greet the person",
+                    "2️⃣ Use 'Could you...' or 'Please...'",
+                    "3️⃣ Say clearly what you need help with",
+                    "4️⃣ Say thank you"
+                ],
+                "examples": {
+                    "bad":
+                        "❌ \"Solve this for me!\"",
+                    "good":
+                        "✅ \"Hello! Could you please help me "
+                        "solve this problem? I’m a bit stuck. "
+                        "Thank you very much!\""
+                }
+            }
+        }
+
+        # Key principles for each goal
+        self.key_principles = {
+            "giving_feedback":
+                "🎯 Feedback = Praise + Suggestion + Encouragement",
+            "polite_refusal":
+                "🤝 Refusal = Thank you + Reason + Alternative",
+            "apologizing":
+                "🙏 Apology = Responsibility + Empathy + Promise",
+            "asking_for_help":
+                "🆘 Asking for help = Greeting + Politeness + Clarity + Thanks"
+        }
 
     def generate_lesson(
         self,
         user_answer: str,
         scenario: dict,
         evaluation: dict
-    ) -> str:
+    ) -> dict:
         """
-        Generate a lesson adapted to the child's response.
-
-        Args:
-            user_answer: The child's answer
-            scenario: Scenario dictionary
-            evaluation: Evaluation result
+        Generate a personalized lesson based on evaluation results.
 
         Returns:
-            A personalized lesson text
+            {
+                "lesson_text": str,
+                "key_principle": str,
+                "practice_tips": list,
+                "examples": dict
+            }
         """
-        lesson_type = self._determine_lesson_type(evaluation)
 
-        if lesson_type == "positive_reinforcement":
-            return self._generate_positive_lesson(
-                user_answer, scenario, evaluation
-            )
-        elif lesson_type == "gentle_correction":
-            return self._generate_corrective_lesson(
-                user_answer, scenario, evaluation
-            )
-        else:
-            return self._generate_balanced_lesson(
-                user_answer, scenario, evaluation
-            )
-
-    def _determine_lesson_type(self, evaluation: dict) -> str:
-        """
-        Determine which type of lesson should be generated.
-        """
+        goal = scenario["goal"]
         score = evaluation["overall_score"]
+        strengths = evaluation.get("strengths", [])
+        weaknesses = evaluation.get("weaknesses", [])
+
+        lesson_data = self.lessons.get(
+            goal,
+            self._get_default_lesson()
+        )
 
         if score >= 80:
-            return "positive_reinforcement"
-        elif score >= 50:
-            return "balanced"
+            lesson_text = self._create_excellence_lesson(
+                lesson_data,
+                strengths
+            )
+        elif score >= 60:
+            lesson_text = self._create_improvement_lesson(
+                lesson_data,
+                weaknesses
+            )
         else:
-            return "gentle_correction"
+            lesson_text = self._create_foundation_lesson(
+                lesson_data
+            )
 
-    def _generate_positive_lesson(
+        practice_tips = self._get_practice_tips(goal)
+
+        return {
+            "lesson_text": lesson_text,
+            "key_principle": self.key_principles.get(
+                goal,
+                "💡 Good communication = Respect + Politeness + Sincerity"
+            ),
+            "practice_tips": practice_tips,
+            "examples": lesson_data["examples"]
+        }
+
+    def _create_excellence_lesson(
         self,
-        answer: str,
-        scenario: dict,
-        evaluation: dict
+        lesson_data: dict,
+        strengths: list
     ) -> str:
-        """
-        Lesson for strong answers – focuses on reinforcement
-        and generalization.
-        """
-        strengths = evaluation["ai_evaluation"].get("strengths", [])
+        """Lesson for strong performance."""
 
-        prompt = f"""
-A student has given a VERY GOOD answer to the following situation:
-
-SITUATION: {scenario['title']}
-GOAL: {scenario['goal']}
-ANSWER: "{answer}"
-
-STRENGTHS:
-{chr(10).join(f"- {s}" for s in strengths)}
-
-Write a short lesson (2–3 sentences) that:
-1. Explains WHY this answer is good
-2. Encourages using this communication style in similar situations
-3. States a general principle the student can remember
-
-Use an encouraging and positive tone.
-DO NOT use bullet points or markdown formatting.
-Start with an emoji 🌟 or ✨
-"""
-
-        try:
-            response = self.client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=[
-                    {
-                        "role": "system",
-                        "content": "You are a teacher who encourages and motivates students."
-                    },
-                    {"role": "user", "content": prompt}
-                ],
-                temperature=0.7,
-                max_tokens=200
-            )
-
-            return response.choices[0].message.content.strip()
-
-        except Exception as e:
-            print(f"Error generating positive lesson: {e}")
-            return (
-                "🌟 Great job! Your words are polite and thoughtful. "
-                "Remember that speaking kindly helps build good relationships "
-                "in every conversation."
-            )
-
-    def _generate_corrective_lesson(
-        self,
-        answer: str,
-        scenario: dict,
-        evaluation: dict
-    ) -> str:
-        """
-        Lesson for answers that need improvement – focuses on learning.
-        """
-        improvements = evaluation["ai_evaluation"].get(
-            "areas_for_improvement", []
-        )
-        goal = scenario["goal"]
-
-        prompt = f"""
-A student is learning the communication skill: {goal}
-
-SITUATION: {scenario['title']}
-STUDENT'S ANSWER: "{answer}"
-
-AREAS TO IMPROVE:
-{chr(10).join(f"- {i}" for i in improvements[:2])}
-
-Write a short lesson (3–4 sentences) that:
-1. Explains an important communication principle for this situation
-2. Compares an unkind way of speaking vs. a polite way
-3. Encourages the student to try again with a positive mindset
-
-Use a supportive and understanding tone.
-DO NOT criticize.
-DO NOT use bullet points or markdown formatting.
-Start with an emoji 🌱 or 💡
-"""
-
-        try:
-            response = self.client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=[
-                    {
-                        "role": "system",
-                        "content": "You are a patient and encouraging teacher."
-                    },
-                    {"role": "user", "content": prompt}
-                ],
-                temperature=0.7,
-                max_tokens=250
-            )
-
-            return response.choices[0].message.content.strip()
-
-        except Exception as e:
-            print(f"Error generating corrective lesson: {e}")
-            return (
-                "🌱 Polite communication helps us get along with others. "
-                "Try adding kind words like ‘please’ or ‘thank you’, and use a "
-                "gentler tone. Give it another try—you can do it!"
-            )
-
-    def _generate_balanced_lesson(
-        self,
-        answer: str,
-        scenario: dict,
-        evaluation: dict
-    ) -> str:
-        """
-        Balanced lesson – praises strengths and guides improvement.
-        """
-        strengths = evaluation["ai_evaluation"].get("strengths", [])
-        improvements = evaluation["ai_evaluation"].get(
-            "areas_for_improvement", []
+        lesson = (
+            f"🌟 **Excellent!** You understand "
+            f"{lesson_data['title']} very well!\n\n"
         )
 
-        prompt = f"""
-A student is practicing communication skills:
+        if strengths:
+            lesson += "**Your strengths:**\n"
+            for strength in strengths[:3]:
+                lesson += f"✅ {strength}\n"
+            lesson += "\n"
 
-SITUATION: {scenario['title']}
-GOAL: {scenario['goal']}
-ANSWER: "{answer}"
+        lesson += (
+            f"**Remember:** {lesson_data['principle']}\n\n"
+            "Keep using this way of speaking. "
+            "You are a great example for others! 🎯"
+        )
 
-WHAT WAS DONE WELL:
-{chr(10).join(f"- {s}" for s in strengths[:2])}
+        return lesson
 
-WHAT CAN BE IMPROVED:
-{chr(10).join(f"- {i}" for i in improvements[:2])}
-
-Write a short lesson (3 sentences) with this structure:
-1. Praise what the student did well
-2. Explain one improvement and why it matters
-3. Encourage the student to try again
-
-Use a balanced, friendly teaching tone.
-DO NOT use bullet points or markdown formatting.
-Start with an emoji 💫 or 🎯
-"""
-
-        try:
-            response = self.client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=[
-                    {
-                        "role": "system",
-                        "content": (
-                            "You are a teacher who balances praise and guidance."
-                        )
-                    },
-                    {"role": "user", "content": prompt}
-                ],
-                temperature=0.7,
-                max_tokens=200
-            )
-
-            return response.choices[0].message.content.strip()
-
-        except Exception as e:
-            print(f"Error generating balanced lesson: {e}")
-            return (
-                "💫 You did some things well in your sentence! "
-                "To make it even better, try adding polite words like "
-                "‘please’ or ‘thank you’. Keep practicing!"
-            )
-
-    def generate_related_scenarios(
+    def _create_improvement_lesson(
         self,
-        scenario: dict,
-        count: int = 3
-    ) -> list:
-        """
-        Generate similar practice scenarios for further learning.
-        """
-        prompt = f"""
-Create {count} new practice situations for children to learn the skill:
-{scenario['goal']}
+        lesson_data: dict,
+        weaknesses: list
+    ) -> str:
+        """Lesson for partial understanding."""
 
-ORIGINAL SITUATION:
-Title: {scenario['title']}
-Story: {scenario['story']}
+        lesson = (
+            f"💪 **Good effort!** You are learning "
+            f"{lesson_data['title']}.\n\n"
+        )
 
-Create {count} DIFFERENT situations with the same learning goal.
-Each situation should include:
-- A short title (4–6 words)
-- A short story (2–3 sentences, suitable for primary school children)
+        lesson += (
+            f"**Important principle:** "
+            f"{lesson_data['principle']}\n\n"
+        )
 
-Return the result as a JSON array:
-[
-  {{
-    "title": "...",
-    "story": "..."
-  }}
-]
-"""
+        if weaknesses:
+            lesson += "**What to improve:**\n"
+            for i, weakness in enumerate(weaknesses[:2], 1):
+                lesson += f"{i}. {weakness}\n"
+            lesson += "\n"
 
-        try:
-            response = self.client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=[
-                    {
-                        "role": "system",
-                        "content": (
-                            "You are a teacher who creates learning scenarios for children."
-                        )
-                    },
-                    {"role": "user", "content": prompt}
-                ],
-                temperature=0.9,
-                response_format={"type": "json_object"}
-            )
+        lesson += "**Compare:**\n"
+        lesson += f"{lesson_data['examples']['bad']}\n"
+        lesson += f"{lesson_data['examples']['good']}\n\n"
 
-            import json
-            result = json.loads(response.choices[0].message.content)
-            return result.get("scenarios", [])
+        lesson += (
+            "Try again and apply these ideas. 🌱"
+        )
 
-        except Exception as e:
-            print(f"Error generating related scenarios: {e}")
-            return []
+        return lesson
+
+    def _create_foundation_lesson(
+        self,
+        lesson_data: dict
+    ) -> str:
+        """Lesson for beginners."""
+
+        lesson = (
+            f"🌱 **Let’s start from the basics:** "
+            f"{lesson_data['title']}\n\n"
+        )
+
+        lesson += (
+            f"**Why is it important?** "
+            f"{lesson_data['principle']}\n\n"
+        )
+
+        lesson += "**Steps to follow:**\n"
+        for step in lesson_data["steps"]:
+            lesson += f"{step}\n"
+        lesson += "\n"
+
+        lesson += "**Learn from examples:**\n"
+        lesson += (
+            f"{lesson_data['examples']['bad']} "
+            "→ This can hurt others\n"
+        )
+        lesson += (
+            f"{lesson_data['examples']['good']} "
+            "→ This is much better!\n\n"
+        )
+
+        lesson += (
+            "Don’t worry! Everyone learns step by step. "
+            "Give it another try! 💪"
+        )
+
+        return lesson
+
+    def _get_practice_tips(self, goal: str) -> list:
+        """Return practice tips for the goal."""
+
+        tips = {
+            "giving_feedback": [
+                "📝 Practice: Praise one thing + suggest one improvement",
+                "🎮 Role-play: Give feedback on a drawing",
+                "👥 Practice with parents: Comment on a meal"
+            ],
+            "polite_refusal": [
+                "📝 Practice: Refuse an invitation politely",
+                "🎮 Role-play: Practice saying no kindly",
+                "👥 Practice with friends: Invite and refuse gently"
+            ],
+            "apologizing": [
+                "📝 Practice: Write a short apology note",
+                "🎮 Scenario: What if you break a friend’s item?",
+                "👥 Practice at home: Apologize for forgetting chores"
+            ],
+            "asking_for_help": [
+                "📝 Practice: Ask for help with homework",
+                "🎮 Scenario: Ask for help in a game",
+                "👥 Practice: Ask parents for small help"
+            ]
+        }
+
+        return tips.get(
+            goal,
+            ["💡 Practice every day to improve!"]
+        )
+
+    def _get_default_lesson(self) -> dict:
+        """Default lesson if goal is unknown."""
+
+        return {
+            "title": "💬 Good Communication",
+            "principle":
+                "Speaking politely helps people like and respect you!",
+            "steps": [
+                "1️⃣ Always greet others",
+                "2️⃣ Say thank you and sorry",
+                "3️⃣ Use gentle words",
+                "4️⃣ Listen to others"
+            ],
+            "examples": {
+                "bad":
+                    "❌ \"No! I don’t like it!\"",
+                "good":
+                    "✅ \"I’m sorry, I can’t do that. Thank you anyway!\""
+            }
+        }
 
 
 def get_personalized_lesson(
@@ -300,61 +321,8 @@ def get_personalized_lesson(
     evaluation: dict
 ) -> dict:
     """
-    Retrieve a personalized lesson package.
-
-    Returns:
-        {
-            "lesson_text": "...",
-            "key_principle": "...",
-            "related_scenarios": [...]
-        }
+    Compatibility wrapper for existing code.
     """
+
     engine = LessonEngine()
-
-    lesson_text = engine.generate_lesson(
-        user_answer, scenario, evaluation
-    )
-
-    key_principle = _extract_key_principle(
-        scenario["goal"], evaluation
-    )
-
-    related_scenarios = []
-    if evaluation["overall_score"] < 60:
-        related_scenarios = engine.generate_related_scenarios(
-            scenario, count=2
-        )
-
-    return {
-        "lesson_text": lesson_text,
-        "key_principle": key_principle,
-        "related_scenarios": related_scenarios
-    }
-
-
-def _extract_key_principle(goal: str, evaluation: dict) -> str:
-    """
-    Extract a key communication principle based on the goal.
-    """
-    principles = {
-        "giving_feedback": (
-            "💬 When giving feedback, use gentle words and focus on solutions "
-            "instead of blaming."
-        ),
-        "polite_refusal": (
-            "🤝 A polite refusal starts with thanks, explains the reason, "
-            "and may offer an alternative."
-        ),
-        "apologizing": (
-            "🙏 A sincere apology includes taking responsibility, "
-            "showing understanding, and promising to improve."
-        ),
-        "asking_for_help": (
-            "🆘 Asking for help politely means being kind, clear, and thankful."
-        )
-    }
-
-    return principles.get(
-        goal,
-        "💡 Good communication comes from respect, listening, and gentle words."
-    )
+    return engine.generate_lesson(user_answer, scenario, evaluation)
