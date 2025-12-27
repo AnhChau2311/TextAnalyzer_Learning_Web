@@ -1,0 +1,37 @@
+[
+  {
+    "id": 1,
+    "title": "Giving Feedback When a Friend Makes a Mistake",
+    "story": "During recess, Alex borrowed your colored pencils to finish a drawing. However, when Alex returned them, one of the pencils was broken. Alex looks worried because he knows the pencil belongs to you, and he does not want you to be upset.",
+    "question": "If you were in this situation, what would you say to Alex?",
+    "goal": "giving_feedback"
+  },
+  {
+    "id": 2,
+    "title": "Disagreeing with a Friend During Group Work",
+    "story": "In class, you and your classmates are working together on a group project. One of your friends suggests an idea, but you think this idea may not work well. Although you want to share your opinion, you also want to avoid starting an argument.",
+    "question": "What would you say to express your different opinion?",
+    "goal": "expressing_disagreement"
+  },
+  {
+    "id": 3,
+    "title": "Politely Refusing an Invitation",
+    "story": "After school, your friend invites you to play outside. However, you feel very tired today and would like to go home and rest. You do not want your friend to feel sad or think that you do not want to spend time together.",
+    "question": "What would you say to politely refuse the invitation?",
+    "goal": "polite_refusal"
+  },
+  {
+    "id": 4,
+    "title": "Apologizing After Hurting Someone’s Feelings",
+    "story": "Earlier today, you said something to your friend while you were feeling angry. As a result, your friend looked sad and stopped talking to you. Now that you feel calmer, you realize that your words may have hurt your friend’s feelings.",
+    "question": "What would you say to apologize to your friend?",
+    "goal": "apologizing"
+  },
+  {
+    "id": 5,
+    "title": "Asking for Help When You Do Not Understand",
+    "story": "During homework time, you are trying to solve a difficult problem. Although you have tried your best, you still do not understand it. You want to ask a classmate for help, but you are worried about interrupting them or bothering them.",
+    "question": "What would you say to ask for help in a polite way?",
+    "goal": "asking_for_help"
+  }
+]

@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Results | TextAnalyzer</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/feedback.css') }}">
+</head>
+<body class="feedback-page">
+    <div class="feedback-container">
+
+        <!-- Score Card -->
+        <section class="score-card fade-in">
+            <div class="score-label">{{ feedback.praise }}</div>
+            <div class="score-display">
+                <div class="score-number">
+                    {{ score }}<span class="score-total">/100</span>
+                </div>
+                <div class="score-style">Style: {{ style_text }}</div>
+            </div>
+        </section>
+
+        <!-- Your Answer -->
+        <section class="answer-card fade-in">
+            <div class="section-header">
+                <span class="section-icon">💬</span>
+                <h2 class="section-title">Your Answer</h2>
+            </div>
+
+            <!-- ✅ SIMPLE, SAFE RENDER (NO HIGHLIGHT) -->
+            <div class="answer-display">
+                {{ answer }}
+            </div>
+        </section>
+
+        <!-- Analysis -->
+        <section class="analysis-card fade-in">
+            <div class="section-header">
+                <span class="section-icon">📊</span>
+                <h2 class="section-title">Detailed Analysis</h2>
+            </div>
+
+            {% if strengths %}
+            <div class="analysis-section">
+                <h3 class="subsection-title success">
+                    <span>✅</span>
+                    <span>What You Did Well</span>
+                </h3>
+                <ul class="strength-list">
+                    {% for strength in strengths %}
+                        <li>{{ strength }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            {% if weaknesses %}
+            <div class="analysis-section">
+                <h3 class="subsection-title warning">
+                    <span>💡</span>
+                    <span>You Can Improve</span>
+                </h3>
+                <ul class="weakness-list">
+                    {% for weakness in weaknesses %}
+                        <li>{{ weakness }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            {% if feedback.strength_message %}
+            <div class="analysis-section">
+                <p style="font-style: italic; color: var(--success-color); font-weight: 600;">
+                    {{ feedback.strength_message }}
+                </p>
+            </div>
+            {% endif %}
+        </section>
+
+        <!-- Suggestions -->
+        <section class="suggestions-card fade-in">
+            <div class="section-header">
+                <span class="section-icon">💡</span>
+                <h2 class="section-title">Suggestions for You</h2>
+            </div>
+
+            <p class="suggestion-text">{{ feedback.suggestion }}</p>
+
+            {% if improvement_example %}
+            <div class="example-box">
+                <div class="example-label">
+                    <span>✨</span>
+                    <span>Example You Can Try</span>
+                </div>
+                <p class="example-text">"{{ improvement_example }}"</p>
+            </div>
+            {% endif %}
+
+            {% if hint_data and hint_data.example_phrases %}
+            <div class="phrases-section">
+                <h4 class="phrases-title">📝 Useful Phrases</h4>
+                <div class="phrases-container">
+                    {% for phrase in hint_data.example_phrases %}
+                        <span class="phrase-tag">{{ phrase }}</span>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </section>
+
+        <!-- Lesson -->
+        <section class="lesson-card fade-in">
+            <div class="section-header">
+                <span class="section-icon">📚</span>
+                <h2 class="section-title">Today's Lesson</h2>
+            </div>
+
+            <div class="lesson-content">
+                {{ lesson_data.lesson_text | safe }}
+            </div>
+
+            <div class="key-principle-box">
+                <div class="principle-label">
+                    <span>🎯</span>
+                    <span>Remember This</span>
+                </div>
+                <p class="principle-text">{{ lesson_data.key_principle }}</p>
+            </div>
+
+            {% if lesson_data.practice_tips %}
+            <div class="practice-section">
+                <h4 class="practice-title">🎮 How to Practice</h4>
+                <div class="practice-grid">
+                    {% for tip in lesson_data.practice_tips %}
+                        <div class="practice-item">{{ tip }}</div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </section>
+
+        <!-- Encouragement -->
+        <section class="encouragement-card fade-in">
+            <p class="encouragement-text">{{ feedback.encouragement }}</p>
+        </section>
+
+        <!-- Action Buttons -->
+        <div class="action-buttons">
+            <a href="{{ url_for('scenario.show_scenario', scenario_id=scenario.id) }}"
+               class="action-btn action-btn-primary">
+                <span>🔄</span>
+                <span>Try Again</span>
+            </a>
+            <a href="{{ url_for('home.home') }}"
+               class="action-btn action-btn-secondary">
+                <span>🏠</span>
+                <span>Go Home</span>
+            </a>
+        </div>
+
+    </div>
+</body>
+</html>

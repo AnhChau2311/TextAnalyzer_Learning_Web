@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create New Scenario | TextAnalyzer</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <style>
+        .admin-page {
+            min-height: 100vh;
+            padding: var(--spacing-xl) 0;
+            background: linear-gradient(135deg, #667EEA 0%, #764BA2 100%);
+        }
+
+        .admin-container {
+            max-width: 700px;
+            margin: 0 auto;
+            padding: 0 var(--spacing-lg);
+        }
+
+        .admin-card {
+            background: var(--white);
+            border-radius: var(--radius-xl);
+            padding: var(--spacing-2xl);
+            box-shadow: var(--shadow-xl);
+        }
+
+        .admin-header {
+            text-align: center;
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .admin-title {
+            font-size: var(--font-size-3xl);
+            color: var(--primary-color);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .admin-subtitle {
+            color: var(--medium-gray);
+            font-size: var(--font-size-base);
+        }
+
+        .form-section {
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .required-indicator {
+            color: var(--danger-color);
+            margin-left: 4px;
+        }
+
+        .form-help {
+            font-size: var(--font-size-sm);
+            color: var(--medium-gray);
+            margin-top: var(--spacing-xs);
+        }
+
+        .goal-options {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: var(--spacing-sm);
+            margin-top: var(--spacing-sm);
+        }
+
+        .goal-option {
+            padding: var(--spacing-md);
+            border: 2px solid var(--light-gray);
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            background: var(--white);
+        }
+
+        .goal-option:hover {
+            border-color: var(--primary-color);
+            background: rgba(91, 141, 239, 0.05);
+        }
+
+        .goal-option input[type="radio"] {
+            display: none;
+        }
+
+        .goal-option input[type="radio"]:checked + label {
+            color: var(--primary-color);
+            font-weight: 700;
+        }
+
+        .goal-option label {
+            cursor: pointer;
+            display: block;
+            font-weight: 600;
+        }
+
+        .button-group {
+            display: flex;
+            gap: var(--spacing-md);
+            margin-top: var(--spacing-xl);
+        }
+
+        .cancel-btn {
+            flex: 1;
+            background: var(--light-gray);
+            color: var(--dark-gray);
+        }
+
+        .cancel-btn:hover {
+            background: var(--medium-gray);
+            color: var(--white);
+        }
+
+        @media (max-width: 768px) {
+            .admin-card {
+                padding: var(--spacing-lg);
+            }
+
+            .goal-options {
+                grid-template-columns: 1fr;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body class="admin-page">
+    <div class="admin-container">
+        <div class="admin-card fade-in">
+            <!-- Header -->
+            <div class="admin-header">
+                <h1 class="admin-title">➕ Create New Scenario</h1>
+                <p class="admin-subtitle">Design a new learning situation for students</p>
+            </div>
+
+            <!-- Form -->
+            <form method="POST" id="createForm">
+                <!-- Title -->
+                <div class="form-section">
+                    <label for="title" class="form-label">
+                        Scenario Title<span class="required-indicator">*</span>
+                    </label>
+                    <input 
+                        type="text"
+                        id="title"
+                        name="title"
+                        class="form-control"
+                        placeholder="e.g., Asking a Friend for Help with Homework"
+                        required
+                        maxlength="100">
+                    <p class="form-help">A clear, descriptive title for the scenario</p>
+                </div>
+
+                <!-- Story -->
+                <div class="form-section">
+                    <label for="story" class="form-label">
+                        Story/Situation<span class="required-indicator">*</span>
+                    </label>
+                    <textarea 
+                        id="story"
+                        name="story"
+                        rows="5"
+                        placeholder="Describe the situation in detail. What is happening? Who is involved? What is the context?"
+                        required
+                        maxlength="500"></textarea>
+                    <p class="form-help">Provide enough context for students to understand the situation</p>
+                </div>
+
+                <!-- Question -->
+                <div class="form-section">
+                    <label for="question" class="form-label">
+                        Question for Student<span class="required-indicator">*</span>
+                    </label>
+                    <textarea 
+                        id="question"
+                        name="question"
+                        rows="2"
+                        placeholder="What would you say in this situation?"
+                        required
+                        maxlength="200"></textarea>
+                    <p class="form-help">The question students need to answer</p>
+                </div>
+
+                <!-- Communication Goal -->
+                <div class="form-section">
+                    <label class="form-label">
+                        Communication Goal<span class="required-indicator">*</span>
+                    </label>
+                    <div class="goal-options">
+                        <div class="goal-option">
+                            <input type="radio" name="goal" value="giving_feedback" id="goal1" checked>
+                            <label for="goal1">Giving Feedback</label>
+                        </div>
+                        <div class="goal-option">
+                            <input type="radio" name="goal" value="polite_refusal" id="goal2">
+                            <label for="goal2">Polite Refusal</label>
+                        </div>
+                        <div class="goal-option">
+                            <input type="radio" name="goal" value="apologizing" id="goal3">
+                            <label for="goal3">Apologizing</label>
+                        </div>
+                        <div class="goal-option">
+                            <input type="radio" name="goal" value="asking_for_help" id="goal4">
+                            <label for="goal4">Asking for Help</label>
+                        </div>
+                    </div>
+                    <p class="form-help">Select the communication skill this scenario teaches</p>
+                </div>
+
+                <!-- Buttons -->
+                <div class="button-group">
+                    <a href="{{ url_for('home.home') }}" class="btn cancel-btn">Cancel</a>
+                    <button type="submit" class="btn btn-primary btn-lg">Create Scenario</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Radio button styling
+        document.querySelectorAll('.goal-option').forEach(option => {
+            option.addEventListener('click', function() {
+                const radio = this.querySelector('input[type="radio"]');
+                radio.checked = true;
+                
+                // Update all options
+                document.querySelectorAll('.goal-option').forEach(opt => {
+                    opt.style.borderColor = 'var(--light-gray)';
+                    opt.style.background = 'var(--white)';
+                });
+                
+                // Highlight selected
+                this.style.borderColor = 'var(--primary-color)';
+                this.style.background = 'rgba(91, 141, 239, 0.1)';
+            });
+        });
+
+        // Initialize first option as selected
+        document.querySelector('.goal-option').click();
+    </script>
+</body>
+</html>

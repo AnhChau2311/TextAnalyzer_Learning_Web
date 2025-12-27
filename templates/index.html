@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Learn Polite Communication | TextAnalyzer</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/home.css') }}">
+</head>
+<body>
+    <!-- Admin Button -->
+    <a href="{{ url_for('admin.create_scenario') }}" class="admin-btn">
+        <span>➕</span>
+        <span>Create New</span>
+    </a>
+
+    <!-- Hero Section -->
+    <div class="hero-section">
+        <div class="container">
+            <div class="hero-content">
+                <h1 class="hero-title">Learn to Speak Kindly</h1>
+                <p class="hero-subtitle">Practice polite communication through fun scenarios</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="container">
+        <!-- Default Scenarios -->
+        <section class="scenarios-section">
+            <h2 class="section-title">Practice Scenarios</h2>
+            
+            {% if default_scenarios %}
+                <div class="scenarios-grid">
+                    {% for scenario in default_scenarios %}
+                    <div class="scenario-card fade-in">
+                        <div class="scenario-card-header">
+                            <h3 class="scenario-title">{{ scenario.title }}</h3>
+                            <span class="scenario-goal">{{ scenario.goal|replace('_', ' ')|title }}</span>
+                        </div>
+                        
+                        <div class="scenario-card-body">
+                            <p>{{ scenario.story[:100] }}{% if scenario.story|length > 100 %}...{% endif %}</p>
+                        </div>
+                        
+                        <div class="scenario-card-footer">
+                            <a href="{{ url_for('scenario.show_scenario', scenario_id=scenario.id) }}" 
+                               class="scenario-start-btn">
+                                Start Practice →
+                            </a>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <div class="empty-state-icon">📝</div>
+                    <h3 class="empty-state-title">No scenarios yet</h3>
+                    <p class="empty-state-text">Create your first scenario to get started!</p>
+                    <a href="{{ url_for('admin.create_scenario') }}" class="btn btn-primary">
+                        Create Scenario
+                    </a>
+                </div>
+            {% endif %}
+        </section>
+
+        <!-- Custom Scenarios -->
+        {% if custom_scenarios %}
+        <section class="scenarios-section">
+            <h2 class="section-title">Custom Scenarios</h2>
+            
+            <div class="scenarios-grid">
+                {% for scenario in custom_scenarios %}
+                <div class="scenario-card fade-in">
+                    <div class="scenario-card-header">
+                        <h3 class="scenario-title">{{ scenario.title }}</h3>
+                        <span class="scenario-goal">{{ scenario.goal|replace('_', ' ')|title }}</span>
+                    </div>
+                    
+                    <div class="scenario-card-body">
+                        <p>{{ scenario.story[:100] }}{% if scenario.story|length > 100 %}...{% endif %}</p>
+                    </div>
+                    
+                    <div class="scenario-card-footer">
+                        <a href="{{ url_for('scenario.show_scenario', scenario_id=scenario.id) }}" 
+                           class="scenario-start-btn">
+                            Start Practice →
+                        </a>
+                        
+                        <form method="POST" 
+                              action="{{ url_for('admin.delete_scenario', scenario_id=scenario.id) }}"
+                              onsubmit="return confirm('Delete this scenario?');">
+                            <button type="submit" class="scenario-delete-btn" title="Delete">
+                                🗑️
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+        {% endif %}
+    </main>
+</body>
+</html>
