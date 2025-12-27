@@ -1,1 +1,9 @@
-[]
+[
+  {
+    "id": 100,
+    "title": "Looking at a Friend's Drawing",
+    "story": "Your friend, Tim, just finished drawing a picture of a dinosaur. He uses bright colors, but he forgot to draw a tail. He shows it to you and asks, \"Do you like it?\"",
+    "question": "What would you say to tell Tim what you like and what he could add?",
+    "goal": "giving_feedback"
+  }
+]

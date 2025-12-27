@@ -3,6 +3,7 @@ feedback.py - Route for processing and displaying feedback
 """
 
 import json
+import os
 from flask import Blueprint, render_template, session, redirect, url_for
 
 from logic.evaluator import evaluate_user_response
@@ -11,29 +12,26 @@ from logic.hint_engine import get_smart_hint
 
 feedback_bp = Blueprint("feedback", __name__)
 
+DEFAULT_PATH = "scenarios/default_scenarios.json"
+CUSTOM_PATH = "scenarios/custom_scenarios.json"
+
 
 @feedback_bp.route("/feedback/<int:scenario_id>")
 def show_feedback(scenario_id):
-    """
-    Display feedback after a child submits an answer.
 
-    Flow:
-    1. Load scenario
-    2. Retrieve answer from session
-    3. Evaluate the answer (ANTLR-based core analysis)
-    4. Generate a personalized lesson
-    5. Generate improvement hints
-    6. Render the feedback template
-    """
+    scenarios = []
 
-    # ===== Load scenario =====
-    with open("scenarios/default_scenarios.json", encoding="utf-8") as f:
-        scenarios = json.load(f)
+    # load default
+    if os.path.exists(DEFAULT_PATH):
+        with open(DEFAULT_PATH, encoding="utf-8") as f:
+            scenarios.extend(json.load(f))
 
-    scenario = next(
-        (s for s in scenarios if s["id"] == scenario_id),
-        None
-    )
+    # load custom
+    if os.path.exists(CUSTOM_PATH):
+        with open(CUSTOM_PATH, encoding="utf-8") as f:
+            scenarios.extend(json.load(f))
+
+    scenario = next((s for s in scenarios if s["id"] == scenario_id), None)
 
     if not scenario:
         return "Scenario not found", 404
@@ -47,28 +45,26 @@ def show_feedback(scenario_id):
             url_for("scenario.show_scenario", scenario_id=scenario_id)
         )
 
-    # ===== STEP 1: Core evaluation (ANTLR-based) =====
+    # ===== STEP 1: Core evaluation =====
     evaluation = evaluate_user_response(answer, scenario)
 
-    # ===== STEP 2: Generate personalized lesson =====
+    # ===== STEP 2: Lesson =====
     lesson_data = get_personalized_lesson(
         user_answer=answer,
         scenario=scenario,
         evaluation=evaluation
     )
 
-    # ===== STEP 3: Generate improvement hints =====
+    # ===== STEP 3: Hint =====
     hint_data = get_smart_hint(
         user_answer=answer,
         scenario=scenario,
         evaluation=evaluation
     )
 
-    # ===== STEP 4: Prepare data for template =====
     score = evaluation["overall_score"]
     style = evaluation["style"]
 
-    # Map internal style to user-friendly text
     style_map = {
         "very_polite": "Very polite 🌟",
         "polite": "Polite 😊",
@@ -76,15 +72,13 @@ def show_feedback(scenario_id):
         "harsh": "A bit harsh 😕",
         "needs_improvement": "Needs improvement 🌱"
     }
-    style_text = style_map.get(style, "Neutral")
 
-    # ===== Render template =====
     return render_template(
         "feedback.html",
         scenario=scenario,
         answer=answer,
         score=score,
-        style_text=style_text,
+        style_text=style_map.get(style, "Neutral"),
         strengths=evaluation.get("strengths", []),
         weaknesses=evaluation.get("weaknesses", []),
         feedback=evaluation["feedback"],
