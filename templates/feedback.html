@@ -10,7 +10,7 @@
 <body class="feedback-page">
     <div class="feedback-container">
 
-        <!-- Score Card -->
+        <!-- ================= SCORE CARD ================= -->
         <section class="score-card fade-in">
             <div class="score-label">{{ feedback.praise }}</div>
             <div class="score-display">
@@ -21,20 +21,19 @@
             </div>
         </section>
 
-        <!-- Your Answer -->
+        <!-- ================= YOUR ANSWER ================= -->
         <section class="answer-card fade-in">
             <div class="section-header">
                 <span class="section-icon">💬</span>
                 <h2 class="section-title">Your Answer</h2>
             </div>
 
-            <!-- ✅ SIMPLE, SAFE RENDER (NO HIGHLIGHT) -->
             <div class="answer-display">
                 {{ answer }}
             </div>
         </section>
 
-        <!-- Analysis -->
+        <!-- ================= DETAILED ANALYSIS ================= -->
         <section class="analysis-card fade-in">
             <div class="section-header">
                 <span class="section-icon">📊</span>
@@ -78,7 +77,34 @@
             {% endif %}
         </section>
 
-        <!-- Suggestions -->
+        <!-- ================= HOW YOU GOT YOUR POINTS ================= -->
+        {% if analysis and analysis.scores and analysis.scores.breakdown %}
+        <section class="analysis-card fade-in">
+            <div class="section-header">
+                <span class="section-icon">🎯</span>
+                <h2 class="section-title">How You Got Your Points</h2>
+            </div>
+
+            {% for key, item in analysis.scores.breakdown.items() %}
+            <div class="analysis-section">
+                <h3 class="subsection-title success">
+                    ⭐ {{ key.replace('_', ' ').title() }}
+                    <span style="font-weight: 500;">
+                        ({{ item.score }}/{{ item.max }})
+                    </span>
+                </h3>
+
+                <ul class="strength-list">
+                    {% for reason in item.reasons %}
+                        <li>{{ reason }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endfor %}
+        </section>
+        {% endif %}
+
+        <!-- ================= SUGGESTIONS ================= -->
         <section class="suggestions-card fade-in">
             <div class="section-header">
                 <span class="section-icon">💡</span>
@@ -109,7 +135,7 @@
             {% endif %}
         </section>
 
-        <!-- Lesson -->
+        <!-- ================= LESSON ================= -->
         <section class="lesson-card fade-in">
             <div class="section-header">
                 <span class="section-icon">📚</span>
@@ -140,12 +166,12 @@
             {% endif %}
         </section>
 
-        <!-- Encouragement -->
+        <!-- ================= ENCOURAGEMENT ================= -->
         <section class="encouragement-card fade-in">
             <p class="encouragement-text">{{ feedback.encouragement }}</p>
         </section>
 
-        <!-- Action Buttons -->
+        <!-- ================= ACTION BUTTONS ================= -->
         <div class="action-buttons">
             <a href="{{ url_for('scenario.show_scenario', scenario_id=scenario.id) }}"
                class="action-btn action-btn-primary">

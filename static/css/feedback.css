@@ -477,3 +477,69 @@
         font-size: var(--font-size-base);
     }
 }
+
+/* ========== SCORE BREAKDOWN (EDUCATIONAL) ========== */
+
+.score-breakdown {
+    background: var(--white);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-xl);
+    margin-bottom: var(--spacing-lg);
+    box-shadow: var(--shadow-md);
+    border-left: 4px solid var(--primary-color);
+}
+
+.breakdown-title {
+    font-size: var(--font-size-xl);
+    font-weight: 700;
+    color: var(--text-dark);
+    margin-bottom: var(--spacing-lg);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.breakdown-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+}
+
+.breakdown-item {
+    background: var(--light-bg);
+    padding: var(--spacing-md) var(--spacing-lg);
+    border-radius: var(--radius-md);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    color: var(--text-dark);
+    border-left: 5px solid var(--success-color);
+}
+
+.breakdown-item span {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+}
+
+.breakdown-points {
+    font-weight: 800;
+    color: var(--success-color);
+}
+
+.breakdown-item.partial {
+    border-left-color: var(--warning-color);
+}
+
+.breakdown-item.partial .breakdown-points {
+    color: var(--warning-color);
+}
+
+.breakdown-hint {
+    font-size: var(--font-size-sm);
+    color: var(--medium-gray);
+    font-style: italic;
+    margin-top: var(--spacing-md);
+}
